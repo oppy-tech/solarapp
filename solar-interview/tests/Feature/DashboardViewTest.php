@@ -83,9 +83,8 @@ class DashboardViewTest extends TestCase
         $response = $this->get('/');
 
         $response->assertStatus(200);
-        // Since the controller currently hardcodes 'N/A', we expect that for now
-        // This test will pass once the backend agent implements the actual calculation
-        $response->assertSee('N/A');
+        $response->assertSee('3 days');
+        $response->assertSee('6 hours');
     }
 
     public function test_avg_approval_time_shows_na_when_null(): void
