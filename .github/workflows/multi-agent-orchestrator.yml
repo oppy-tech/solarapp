@@ -263,10 +263,23 @@ jobs:
           git merge origin/agent/backend --no-edit -m "merge: backend agent (Task A)"
 
           echo "Merging frontend agent..."
-          git merge origin/agent/frontend --no-edit -m "merge: frontend agent (Task B)"
+          git merge origin/agent/frontend --no-edit -m "merge: frontend agent (Task B)" || {
+            # Resolve output.txt conflicts (claude-code-action log file) by keeping both
+            git checkout --theirs output.txt 2>/dev/null || true
+            git add output.txt 2>/dev/null || true
+            git -c core.editor=true merge --continue
+          }
 
           echo "Merging data-integrity agent..."
-          git merge origin/agent/data-integrity --no-edit -m "merge: data-integrity agent (Task C)"
+          git merge origin/agent/data-integrity --no-edit -m "merge: data-integrity agent (Task C)" || {
+            git checkout --theirs output.txt 2>/dev/null || true
+            git add output.txt 2>/dev/null || true
+            git -c core.editor=true merge --continue
+          }
+
+          # Clean up action output files
+          git rm -f output.txt 2>/dev/null || true
+          git diff --cached --quiet || git commit -m "chore: remove claude-code-action output files"
 
           git push origin ${{ env.DELIVERY_BRANCH }} --force
 

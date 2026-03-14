@@ -5,5 +5,7 @@ solar-interview/.env.backup
 solar-interview/.env.bak
 solar-interview/database/database.sqlite
 solar-interview/storage/logs/*.log
+solar-interview/testing
+output.txt
 *.Zone.Identifier
 __MACOSX/
