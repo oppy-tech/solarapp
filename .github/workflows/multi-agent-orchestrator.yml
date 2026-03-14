@@ -246,6 +246,11 @@ jobs:
           ref: master
           fetch-depth: 0
 
+      - name: Configure git identity
+        run: |
+          git config user.name "Multi-Agent Orchestrator"
+          git config user.email "orchestrator@solarapp.dev"
+
       - name: Fetch all agent branches
         run: |
           git fetch origin agent/backend agent/frontend agent/data-integrity
