@@ -169,6 +169,18 @@ Your tests should map to the acceptance criteria in `agents/product-owner-agent.
 ./vendor/bin/sail artisan test --filter=DataIntegrityCheckTest
 ```
 
+### CRITICAL: All tests must pass
+Do NOT consider your work complete until every test passes. The TDD cycle is:
+1. Write tests → run → confirm they FAIL (red)
+2. Implement code → run → some tests should now PASS
+3. If ANY test still fails → debug, fix your implementation, re-run
+4. Repeat step 3 until 0 failures
+5. Only then is your work done
+
+If a test is genuinely wrong (testing the wrong thing), you may fix the test — but document why in a code comment. Never delete a test to make the suite pass.
+
+Note on null fields: SQLite and MySQL may reject NULL inserts on NOT NULL columns. If a test needs to insert NULL to test detection, use `DB::table('projects')->insert([...])` to bypass Eloquent's model protections, or use empty string instead of null. The goal is that the command DETECTS the issue.
+
 ## Infrastructure Context & Security Guardrails
 
 The production environment runs on AWS ECS Fargate with Postgres RDS. Keep this in mind for your audit:

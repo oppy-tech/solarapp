@@ -72,20 +72,25 @@ jobs:
             Read the file agents/backend-agent.md for your full instructions.
 
             You are the Backend Agent. Follow TDD strictly:
-            1. Read the agent prompt, the existing controller, models, and migration
-            2. Write tests FIRST in solar-interview/tests/Feature/DashboardControllerTest.php
-            3. Run tests to confirm they fail (red)
+            1. Read the agent prompt (including Known Issues section), the existing controller, models, and migration
+            2. Write ALL tests (happy path AND negative/edge case) in solar-interview/tests/Feature/DashboardControllerTest.php
+            3. Run tests — they should fail (red)
             4. Implement the changes in solar-interview/app/Http/Controllers/Ahj/DashboardController.php
-            5. Run tests to confirm they pass (green)
-            6. Refactor if needed, re-run tests
+            5. Run tests again — fix your implementation until ALL tests pass (green)
+            6. If any test still fails, DO NOT STOP. Debug the failure, update the implementation, and re-run tests.
+            7. Repeat step 5-6 until you see 0 failures.
+
+            CRITICAL: You must not finish until ALL tests pass. Run the test suite as your final step and confirm 0 failures in the output. If any test fails, fix the code and re-run.
 
             Run tests with: cd solar-interview && php artisan test --filter=DashboardControllerTest
 
             IMPORTANT: Only edit DashboardController.php and your test file. Do not touch views, models, or routes.
-
-            Commit your changes with a descriptive message when done.
           allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
           model: ${{ env.ANTHROPIC_MODEL }}
+
+      - name: Verify all tests pass
+        working-directory: solar-interview
+        run: php artisan test --filter=DashboardControllerTest
 
       - name: Push agent branch
         run: |
@@ -140,20 +145,27 @@ jobs:
             Read the file agents/frontend-agent.md for your full instructions.
 
             You are the Frontend Agent. Follow TDD strictly:
-            1. Read the agent prompt, the existing blade template, layout, and controller
-            2. Write tests FIRST in solar-interview/tests/Feature/DashboardViewTest.php
-            3. Run tests to confirm they fail (red)
+            1. Read the agent prompt (including Known Issues section), the existing blade template, layout, and controller
+            2. Write ALL tests (happy path AND negative/edge case) in solar-interview/tests/Feature/DashboardViewTest.php
+            3. Run tests — they should fail (red)
             4. Implement the changes in solar-interview/resources/views/pages/ahj/dashboard.blade.php
-            5. Run tests to confirm they pass (green)
-            6. Refactor if needed, re-run tests
+            5. Run tests again — fix your implementation until ALL tests pass (green)
+            6. If any test still fails, DO NOT STOP. Debug the failure, update the implementation or test, and re-run.
+            7. Repeat step 5-6 until you see 0 failures.
+
+            CRITICAL: You must not finish until ALL tests pass. Run the test suite as your final step and confirm 0 failures in the output. If any test fails, fix the code and re-run.
+
+            NOTE: The backend agent runs in parallel and implements the controller. Your tests will hit the CURRENT controller (pre-implementation). For tests that depend on backend behaviour (e.g. avg approval time format), test what YOUR view does with the data contract. If the controller currently returns 'N/A' as a string for avg_approval_time, but the contract says it returns int|null, write your test against the contract (int|null), not the current implementation. Seed data and check what the controller actually returns.
 
             Run tests with: cd solar-interview && php artisan test --filter=DashboardViewTest
 
             IMPORTANT: Only edit dashboard.blade.php and your test file. Do not touch controllers, models, or routes.
-
-            Commit your changes with a descriptive message when done.
           allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
           model: ${{ env.ANTHROPIC_MODEL }}
+
+      - name: Verify all tests pass
+        working-directory: solar-interview
+        run: php artisan test --filter=DashboardViewTest
 
       - name: Push agent branch
         run: |
@@ -208,22 +220,30 @@ jobs:
             Read the file agents/data-integrity-agent.md for your full instructions.
 
             You are the Data Integrity Agent. Follow TDD strictly:
-            1. Read the agent prompt, the models, migration, seeder, and sample_data.json
-            2. Write tests FIRST in solar-interview/tests/Feature/DataIntegrityCheckTest.php
+            1. Read the agent prompt (including Known Issues section), the models, migration, seeder, and sample_data.json
+            2. Write ALL tests (including negative/edge cases) in solar-interview/tests/Feature/DataIntegrityCheckTest.php
             3. Create the Artisan command in solar-interview/app/Console/Commands/DataIntegrityCheck.php
-            4. Run tests to confirm they fail (red)
+            4. Run tests — they should fail (red)
             5. Implement the command logic
-            6. Run tests to confirm they pass (green)
-            7. Run the command against the seeded database to generate DATA_INTEGRITY_REPORT.md
+            6. Run tests again — fix your implementation until ALL tests pass (green)
+            7. If any test still fails, DO NOT STOP. Debug the failure, update the implementation, and re-run.
+            8. Repeat step 6-7 until you see 0 failures.
+            9. Run the command against the seeded database to generate DATA_INTEGRITY_REPORT.md
+
+            CRITICAL: You must not finish until ALL tests pass. Run the test suite as your final step and confirm 0 failures in the output. If any test fails, fix the code and re-run.
+
+            Note on null fields: SQLite and MySQL handle NOT NULL constraints differently. If a test tries to insert a NULL into a NOT NULL column, it may fail at the DB level. In that case, either use DB::table()->insert() to bypass Eloquent, or adjust the test to use an empty string instead of null. The important thing is that the command DETECTS the issue.
 
             Run tests with: cd solar-interview && php artisan test --filter=DataIntegrityCheckTest
             Run the command with: cd solar-interview && php artisan data:integrity-check
 
             IMPORTANT: Do not modify existing models, controllers, views, or migrations. You may only create your command file, test file, and the report.
-
-            Commit your changes with a descriptive message when done.
           allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
           model: ${{ env.ANTHROPIC_MODEL }}
+
+      - name: Verify all tests pass
+        working-directory: solar-interview
+        run: php artisan test --filter=DataIntegrityCheckTest
 
       - name: Push agent branch
         run: |

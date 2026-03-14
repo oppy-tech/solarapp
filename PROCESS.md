@@ -117,8 +117,9 @@ Four agents, each with a single responsibility:
 
 ### What we'd do differently next time
 
-1. **Add a contract validation step** between agent execution and merge — a lightweight check that the backend's return types match what the frontend expects, catching mismatches before tests run.
-2. **Include PHP-specific gotchas in the frontend prompt** — `floor()` returns float, nullable column access needs `?->`, `===` vs `==` for type safety.
-3. **Run agents sequentially with a dependency graph** — backend first, then frontend (so it can test against the real implementation), then data integrity (independent). The parallelism saved ~5 minutes but cost us a cross-agent bug.
-4. **Bake the CI fixes into the workflow from the start** — `mode: agent`, `id-token: write`, `direct_prompt`, `.env.example` setup, `output.txt` conflict handling. These are learnable patterns for `claude-code-action` that should be documented upfront.
-5. **Use `gh pr create` instead of `peter-evans/create-pull-request`** — simpler, more predictable, and avoids the "no diff" edge case when branches are pushed by prior jobs.
+1. **Enforce green tests before commit** — the first iteration let agents commit with failing tests. We added a `Verify all tests pass` step in the workflow that runs the test suite independently of the agent, blocking the push if any test fails. The agent prompts now include a CRITICAL section making it explicit that 0 failures is the exit condition, not "wrote tests and implemented".
+2. **Add a contract validation step** between agent execution and merge — a lightweight check that the backend's return types match what the frontend expects, catching mismatches before tests run.
+3. **Include PHP-specific gotchas in the frontend prompt** — `floor()` returns float, nullable column access needs `?->`, `===` vs `==` for type safety.
+4. **Run agents sequentially with a dependency graph** — backend first, then frontend (so it can test against the real implementation), then data integrity (independent). The parallelism saved ~5 minutes but cost us a cross-agent bug.
+5. **Bake the CI fixes into the workflow from the start** — `mode: agent`, `id-token: write`, `direct_prompt`, `.env.example` setup, `output.txt` conflict handling. These are learnable patterns for `claude-code-action` that should be documented upfront.
+6. **Use `gh pr create` instead of `peter-evans/create-pull-request`** — simpler, more predictable, and avoids the "no diff" edge case when branches are pushed by prior jobs.

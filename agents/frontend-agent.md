@@ -128,6 +128,16 @@ Your tests should map to the acceptance criteria in `agents/product-owner-agent.
 ./vendor/bin/sail artisan test --filter=DashboardViewTest
 ```
 
+### CRITICAL: All tests must pass
+Do NOT consider your work complete until every test passes. The TDD cycle is:
+1. Write tests → run → confirm they FAIL (red)
+2. Implement code → run → some tests should now PASS
+3. If ANY test still fails → debug, fix your implementation, re-run
+4. Repeat step 3 until 0 failures
+5. Only then is your work done
+
+If a test is genuinely wrong (testing the wrong thing), you may fix the test — but document why in a code comment. Never delete a test to make the suite pass.
+
 ## Infrastructure Context & Security Guardrails
 
 The production environment runs on AWS ECS Fargate. The app is internet-facing (port 80 open to `0.0.0.0/0` with no WAF). Keep this in mind for frontend code:
