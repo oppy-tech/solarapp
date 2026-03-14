@@ -1,0 +1,9 @@
+solar-interview/vendor/
+solar-interview/node_modules/
+solar-interview/.env
+solar-interview/.env.backup
+solar-interview/.env.bak
+solar-interview/database/database.sqlite
+solar-interview/storage/logs/*.log
+*.Zone.Identifier
+__MACOSX/

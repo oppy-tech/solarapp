@@ -1,0 +1,111 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Simplified SolarAPP+ Infrastructure
+
+Parameters:
+  Env:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, stage, prod]
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: The VPC where resources will be deployed
+  PrivateSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: List of private subnets for RDS and ECS
+
+Resources:
+  # The Database
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: db.t4g.small
+      Engine: postgres
+      AllocatedStorage: 20
+      DBName: solarapp
+      MasterUsername: solarapp_admin
+      MasterUserPassword: SolarApp2024!
+      VPCSecurityGroups:
+        - !Ref DBSecurityGroup
+
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow access to RDS
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: !Ref AppSecurityGroup
+
+  # The ECS Cluster
+  ECSCluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Sub solarapp-${Env}
+
+  # The Application Security Group
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security Group for the App Service
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+
+  # IAM Role for the Application
+  AppTaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AppPermissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:*
+                  - sqs:*
+                  - ses:*
+                  - logs:*
+                Resource: "*"
+
+  # The Application Service
+  AppService:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref ECSCluster
+      DesiredCount: 2
+      LaunchType: FARGATE
+      TaskDefinition: !Ref AppTaskDefinition
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          Subnets: !Ref PrivateSubnetIds
+          SecurityGroups:
+            - !Ref AppSecurityGroup
+
+  # The Task Definition
+  AppTaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      Family: !Sub solarapp-${Env}
+      Cpu: 1024
+      Memory: 2048
+      NetworkMode: awsvpc
+      RequiresCompatibilities: [FARGATE]
+      TaskRoleArn: !GetAtt AppTaskRole.Arn
+      ContainerDefinitions:
+        - Name: app
+          Image: solarapp:latest
+          PortMappings:
+            - ContainerPort: 80

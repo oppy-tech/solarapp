@@ -1,0 +1,427 @@
+name: Multi-Agent Orchestrator
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_agents:
+        description: 'Skip agent execution (use existing agent branches)'
+        required: false
+        default: 'false'
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+env:
+  DELIVERY_BRANCH: feature/multi-agent-delivery
+  PHP_VERSION: '8.4'
+  ANTHROPIC_MODEL: claude-sonnet-4-20250514
+
+jobs:
+  # ============================================================
+  # Phase 1: Parallel Agent Execution
+  # ============================================================
+
+  agent-backend:
+    name: "Agent: Backend (Task A)"
+    runs-on: ubuntu-latest
+    if: ${{ inputs.skip_agents != 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, xml, sqlite3, pdo_sqlite, pdo_mysql
+          tools: composer:v2
+
+      - name: Setup Laravel environment
+        run: |
+          chmod +x setup.sh
+          ./setup.sh
+        continue-on-error: false
+
+      - name: Install Sanctum (known fix)
+        working-directory: solar-interview
+        run: composer require laravel/sanctum --quiet
+
+      - name: Create agent branch
+        run: |
+          git checkout -b agent/backend
+          git push origin agent/backend --force
+
+      - name: Run Backend Agent
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Read the file agents/backend-agent.md for your full instructions.
+
+            You are the Backend Agent. Follow TDD strictly:
+            1. Read the agent prompt, the existing controller, models, and migration
+            2. Write tests FIRST in solar-interview/tests/Feature/DashboardControllerTest.php
+            3. Run tests to confirm they fail (red)
+            4. Implement the changes in solar-interview/app/Http/Controllers/Ahj/DashboardController.php
+            5. Run tests to confirm they pass (green)
+            6. Refactor if needed, re-run tests
+
+            Run tests with: php artisan test --filter=DashboardControllerTest
+
+            IMPORTANT: Only edit DashboardController.php and your test file. Do not touch views, models, or routes.
+
+            Commit your changes with a descriptive message when done.
+          allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
+          model: ${{ env.ANTHROPIC_MODEL }}
+
+      - name: Push agent branch
+        run: |
+          git add -A
+          git diff --cached --quiet || git commit -m "feat(backend): Task A - date filtering, avg approval time, pagination"
+          git push origin agent/backend --force
+
+  agent-frontend:
+    name: "Agent: Frontend (Task B)"
+    runs-on: ubuntu-latest
+    if: ${{ inputs.skip_agents != 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, xml, sqlite3, pdo_sqlite, pdo_mysql
+          tools: composer:v2
+
+      - name: Setup Laravel environment
+        run: |
+          chmod +x setup.sh
+          ./setup.sh
+        continue-on-error: false
+
+      - name: Install Sanctum (known fix)
+        working-directory: solar-interview
+        run: composer require laravel/sanctum --quiet
+
+      - name: Create agent branch
+        run: |
+          git checkout -b agent/frontend
+          git push origin agent/frontend --force
+
+      - name: Run Frontend Agent
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Read the file agents/frontend-agent.md for your full instructions.
+
+            You are the Frontend Agent. Follow TDD strictly:
+            1. Read the agent prompt, the existing blade template, layout, and controller
+            2. Write tests FIRST in solar-interview/tests/Feature/DashboardViewTest.php
+            3. Run tests to confirm they fail (red)
+            4. Implement the changes in solar-interview/resources/views/pages/ahj/dashboard.blade.php
+            5. Run tests to confirm they pass (green)
+            6. Refactor if needed, re-run tests
+
+            Run tests with: php artisan test --filter=DashboardViewTest
+
+            IMPORTANT: Only edit dashboard.blade.php and your test file. Do not touch controllers, models, or routes.
+
+            Commit your changes with a descriptive message when done.
+          allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
+          model: ${{ env.ANTHROPIC_MODEL }}
+
+      - name: Push agent branch
+        run: |
+          git add -A
+          git diff --cached --quiet || git commit -m "feat(frontend): Task B - date picker, approval time display, pagination nav"
+          git push origin agent/frontend --force
+
+  agent-data-integrity:
+    name: "Agent: Data Integrity (Task C)"
+    runs-on: ubuntu-latest
+    if: ${{ inputs.skip_agents != 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, xml, sqlite3, pdo_sqlite, pdo_mysql
+          tools: composer:v2
+
+      - name: Setup Laravel environment
+        run: |
+          chmod +x setup.sh
+          ./setup.sh
+        continue-on-error: false
+
+      - name: Install Sanctum (known fix)
+        working-directory: solar-interview
+        run: composer require laravel/sanctum --quiet
+
+      - name: Create agent branch
+        run: |
+          git checkout -b agent/data-integrity
+          git push origin agent/data-integrity --force
+
+      - name: Run Data Integrity Agent
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Read the file agents/data-integrity-agent.md for your full instructions.
+
+            You are the Data Integrity Agent. Follow TDD strictly:
+            1. Read the agent prompt, the models, migration, seeder, and sample_data.json
+            2. Write tests FIRST in solar-interview/tests/Feature/DataIntegrityCheckTest.php
+            3. Create the Artisan command in solar-interview/app/Console/Commands/DataIntegrityCheck.php
+            4. Run tests to confirm they fail (red)
+            5. Implement the command logic
+            6. Run tests to confirm they pass (green)
+            7. Run the command against the seeded database to generate DATA_INTEGRITY_REPORT.md
+
+            Run tests with: php artisan test --filter=DataIntegrityCheckTest
+            Run the command with: php artisan data:integrity-check
+
+            IMPORTANT: Do not modify existing models, controllers, views, or migrations. You may only create your command file, test file, and the report.
+
+            Commit your changes with a descriptive message when done.
+          allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
+          model: ${{ env.ANTHROPIC_MODEL }}
+
+      - name: Push agent branch
+        run: |
+          git add -A
+          git diff --cached --quiet || git commit -m "feat(data): Task C - data integrity audit command and report"
+          git push origin agent/data-integrity --force
+
+  # ============================================================
+  # Phase 2: Merge Agent Branches
+  # ============================================================
+
+  merge-agents:
+    name: "Merge Agent Branches"
+    runs-on: ubuntu-latest
+    needs: [agent-backend, agent-frontend, agent-data-integrity]
+    if: always() && !contains(needs.*.result, 'failure')
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Fetch all agent branches
+        run: |
+          git fetch origin agent/backend agent/frontend agent/data-integrity
+
+      - name: Create delivery branch and merge agents
+        run: |
+          git checkout -b ${{ env.DELIVERY_BRANCH }}
+
+          echo "Merging backend agent..."
+          git merge origin/agent/backend --no-edit -m "merge: backend agent (Task A)"
+
+          echo "Merging frontend agent..."
+          git merge origin/agent/frontend --no-edit -m "merge: frontend agent (Task B)"
+
+          echo "Merging data-integrity agent..."
+          git merge origin/agent/data-integrity --no-edit -m "merge: data-integrity agent (Task C)"
+
+          git push origin ${{ env.DELIVERY_BRANCH }} --force
+
+  # ============================================================
+  # Phase 3: Test Suite
+  # ============================================================
+
+  test:
+    name: "Test Suite"
+    runs-on: ubuntu-latest
+    needs: merge-agents
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DELIVERY_BRANCH }}
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, xml, sqlite3, pdo_sqlite, pdo_mysql
+          tools: composer:v2
+          coverage: none
+
+      - name: Setup Laravel environment
+        run: |
+          chmod +x setup.sh
+          ./setup.sh
+        continue-on-error: true
+
+      - name: Install Sanctum
+        working-directory: solar-interview
+        run: composer require laravel/sanctum --quiet
+
+      - name: Configure test environment
+        working-directory: solar-interview
+        run: |
+          cp .env .env.testing
+          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env.testing
+          sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env.testing
+          sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env.testing
+          sed -i 's/DB_DATABASE=.*/DB_DATABASE=testing/' .env.testing
+          sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/' .env.testing
+          sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=password/' .env.testing
+
+      - name: Run full test suite
+        working-directory: solar-interview
+        run: php artisan test --env=testing
+
+  # ============================================================
+  # Phase 4: Create Pull Request
+  # ============================================================
+
+  create-pr:
+    name: "Create Pull Request"
+    runs-on: ubuntu-latest
+    needs: test
+    outputs:
+      pr_number: ${{ steps.create-pr.outputs.pull-request-number }}
+      pr_url: ${{ steps.create-pr.outputs.pull-request-url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DELIVERY_BRANCH }}
+          fetch-depth: 0
+
+      - name: Create Pull Request
+        id: create-pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ env.DELIVERY_BRANCH }}
+          base: main
+          title: "feat: Multi-Agent Dashboard Enhancement (Tasks A, B, C)"
+          body: |
+            ## Summary
+            Multi-agent workflow delivery for SolarAPP+ Dashboard enhancements.
+
+            ### Task A: Dashboard Analytics (Backend)
+            - Date range filtering via `start_date`/`end_date` query params
+            - Average approval time calculation for approved projects
+            - Server-side pagination (20 per page, replaces `limit(10)`)
+
+            ### Task B: Dashboard UI (Frontend)
+            - Date range picker with filter/clear controls
+            - Human-readable average approval time display
+            - Pagination navigation with filter persistence in URL
+
+            ### Task C: Data Integrity Report
+            - Artisan command `data:integrity-check` scans for data anomalies
+            - `DATA_INTEGRITY_REPORT.md` with findings by severity
+            - Covers both AHJs independently
+
+            ## Agent Workflow
+            | Agent | Branch | Files Modified |
+            |-------|--------|---------------|
+            | Backend | `agent/backend` | `DashboardController.php`, `DashboardControllerTest.php` |
+            | Frontend | `agent/frontend` | `dashboard.blade.php`, `DashboardViewTest.php` |
+            | Data Integrity | `agent/data-integrity` | `DataIntegrityCheck.php`, `DataIntegrityCheckTest.php`, `DATA_INTEGRITY_REPORT.md` |
+
+            ## Test Results
+            All tests passed in CI (see Test Suite job).
+
+            ## Acceptance Criteria
+            See `agents/product-owner-agent.md` for full AC list.
+            Validation report to follow in code review.
+
+            ---
+            🤖 Generated by Multi-Agent Orchestrator workflow
+          labels: multi-agent,enhancement
+
+  # ============================================================
+  # Phase 5: Code Review
+  # ============================================================
+
+  code-review:
+    name: "Code Review Agent"
+    runs-on: ubuntu-latest
+    needs: create-pr
+    if: needs.create-pr.outputs.pr_number != ''
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DELIVERY_BRANCH }}
+          fetch-depth: 0
+
+      - name: Run Code Review Agent
+        uses: anthropics/claude-code-action@beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          model: ${{ env.ANTHROPIC_MODEL }}
+          prompt: |
+            You are a senior code reviewer for the SolarAPP+ project.
+
+            Read agents/product-owner-agent.md for the acceptance criteria.
+
+            Review the changes in this PR by:
+            1. Read the diff between main and this branch
+            2. Check each file for:
+               - Security issues (XSS, SQL injection, input validation)
+               - Performance issues (N+1 queries, unbounded queries, memory usage)
+               - Multi-tenancy violations (data leaking between AHJs)
+               - Laravel best practices (Eloquent usage, Blade escaping, pagination)
+               - Test coverage (do tests cover the acceptance criteria?)
+            3. Validate against the acceptance criteria in agents/product-owner-agent.md
+            4. Check that agents respected their file ownership boundaries
+
+            Post your review as a comment on PR #${{ needs.create-pr.outputs.pr_number }}.
+            Use this format:
+
+            ## Code Review: Multi-Agent Delivery
+
+            ### Security
+            [findings]
+
+            ### Performance
+            [findings]
+
+            ### Multi-Tenancy
+            [findings]
+
+            ### Acceptance Criteria Coverage
+            | AC | Status | Notes |
+            |----|--------|-------|
+            | AC1.1 | ✅/❌ | ... |
+            ...
+
+            ### Recommendations
+            [any changes needed before merge]
+
+            Be specific — reference file paths and line numbers.
+          allowed_tools: "Bash,Read,Glob,Grep"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ needs.create-pr.outputs.pr_number }}
