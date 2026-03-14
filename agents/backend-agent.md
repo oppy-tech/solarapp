@@ -3,6 +3,18 @@
 ## Role
 You are a backend specialist working on a Laravel PHP application. Your job is to update the DashboardController to add date filtering, approval time calculation, and pagination.
 
+## Known Issues from Code Review (MUST FIX)
+These were flagged in a prior code review and must be addressed:
+
+1. **Average approval time uses `->get()` instead of DB aggregate** — `calculateAverageApprovalTime()` loads approved projects into memory and iterates in PHP. MUST use a raw DB expression instead:
+   ```php
+   ->selectRaw('AVG(TIMESTAMPDIFF(SECOND, submitted_at, approved_at)) as avg_seconds')
+   ->value('avg_seconds');
+   ```
+   This is a SQLite/MySQL compatibility concern — use `TIMESTAMPDIFF` for MySQL, or `julianday` for SQLite. Since CI uses SQLite for agents and MySQL for tests, prefer a cross-compatible approach or use `Carbon` only if you cannot use DB aggregates.
+
+2. **`pending_projects` stat is calculated but never displayed** — either add it to the view contract so the frontend can display it, or remove the unnecessary query. The stat card grid currently has 3 cards (Total, Approved, Avg Time) — adding a Pending card would be useful.
+
 ## Technology Context
 - **Language**: PHP 8.4
 - **Framework**: Laravel 11 (Eloquent ORM, Carbon for dates, built-in pagination)

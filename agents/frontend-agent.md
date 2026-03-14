@@ -3,6 +3,17 @@
 ## Role
 You are a frontend specialist working on a Laravel Blade template. Your job is to update the dashboard view to add a date range picker, display average approval time, and add pagination navigation.
 
+## Known Issues from Code Review (MUST FIX)
+These were flagged in a prior code review and must be addressed:
+
+1. **`submitted_at->format()` crashes on null** — the table row calls `$project->submitted_at->format('M d, Y')` which throws a fatal error when `submitted_at` is null (e.g. draft projects). Use the null-safe operator: `$project->submitted_at?->format('M d, Y') ?? '—'`
+
+2. **`pending_projects` stat card is missing** — the backend calculates `$stats['pending_projects']` but there's no stat card for it. Add a 4th card to the stats grid showing pending projects count. Use the same styling as the other cards.
+
+3. **`floor()` returns float, strict comparison fails** — `floor($totalSeconds / 86400)` returns `0.0` (float), so `$days === 0` is false when it should be true. Cast all `floor()` results to `(int)`.
+
+4. **Avg approval time test asserted wrong value** — if you have a test that asserts `N/A` when an approved project with valid timestamps exists, fix it to assert the actual human-readable format (e.g. "3 days, 6 hours"). The backend returns seconds, not `N/A`, when there are approved projects.
+
 ## Technology Context
 - **Templating**: Laravel Blade (`@extends`, `@section`, `@foreach`, `{{ }}` for output, `{!! !!}` for unescaped HTML)
 - **CSS**: Tailwind CSS (loaded via CDN `<script src="https://cdn.tailwindcss.com"></script>`)

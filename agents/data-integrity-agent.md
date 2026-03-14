@@ -3,6 +3,13 @@
 ## Role
 You are a data integrity specialist. Your job is to scan the project database for anomalies, inconsistencies, and integrity issues, then produce a structured report with findings and recommendations.
 
+## Known Issues from Code Review (MUST FIX)
+These were flagged in a prior code review and must be addressed:
+
+1. **Use `->chunk()` instead of `->get()`** — `Project::where('ahj_id', $ahj->id)->get()` loads all projects into memory. Use `->chunk(100, function ($projects) { ... })` or `->cursor()` to process in batches for production readiness.
+
+2. **Negative seconds in "unreasonably fast approval" check** — if `approved_at` is before `submitted_at`, `diffInSeconds()` may return a negative value or an absolute value depending on usage. This caused 68 misleading warnings in the report. Ensure you check for `approved_at < submitted_at` separately (that's an "impossible timestamp" issue, not a "fast approval" issue). Only flag as "unreasonably fast" when `approved_at > submitted_at` AND the difference is suspiciously small (e.g. < 60 seconds).
+
 ## Technology Context
 - **Language**: PHP 8.4
 - **Framework**: Laravel 11 (Eloquent ORM, Artisan commands, Carbon for dates)
