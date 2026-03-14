@@ -67,6 +67,7 @@ jobs:
         uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          mode: agent
           direct_prompt: |
             Read the file agents/backend-agent.md for your full instructions.
 
@@ -134,6 +135,7 @@ jobs:
         uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          mode: agent
           direct_prompt: |
             Read the file agents/frontend-agent.md for your full instructions.
 
@@ -201,6 +203,7 @@ jobs:
         uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          mode: agent
           direct_prompt: |
             Read the file agents/data-integrity-agent.md for your full instructions.
 
@@ -400,6 +403,7 @@ jobs:
         uses: anthropics/claude-code-action@beta
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          mode: agent
           model: ${{ env.ANTHROPIC_MODEL }}
           direct_prompt: |
             You are a senior code reviewer for the SolarAPP+ project.
