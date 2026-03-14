@@ -80,6 +80,18 @@ You are the product owner for the SolarAPP+ AHJ Dashboard. You do NOT write code
 - [ ] AC6.2: The dashboard handles empty states (no projects, no approved projects) without crashing
 - [ ] AC6.3: No browser console errors on page load or during interaction
 
+### Cross-cutting: Input Validation & Security
+- [ ] AC7.1: Invalid date formats in query params (e.g. `?start_date=not-a-date`) do not cause a 500 error — the page loads and filters are ignored
+- [ ] AC7.2: SQL injection attempts in date params (e.g. `?start_date='; DROP TABLE projects;--`) return 200, no data is lost
+- [ ] AC7.3: XSS payloads in query params (e.g. `?start_date=<script>alert(1)</script>`) are escaped — no script tags appear unescaped in the rendered HTML
+- [ ] AC7.4: End date before start date is handled gracefully — page loads, invalid range is ignored or an inline message is shown
+- [ ] AC7.5: Empty date params (`?start_date=&end_date=`) are treated as no filter
+- [ ] AC7.6: Partial date params (only start or only end) do not crash — the page loads with a sensible default
+- [ ] AC7.7: Extremely large page numbers (`?page=99999`) return 200 with an empty result set, not a 500
+- [ ] AC7.8: Non-numeric page values (`?page=abc`) do not crash the page
+- [ ] AC7.9: Extra/unexpected query params are silently ignored
+- [ ] AC7.10: Special characters in project titles (quotes, ampersands, angle brackets) are properly escaped in the HTML table output
+
 ## Validation Process
 
 When validating the delivered work, check each AC by:

@@ -86,16 +86,31 @@ Your tests should map to the acceptance criteria in `agents/product-owner-agent.
 - AC2.1, AC2.4 (human-readable display, N/A handling)
 - AC3.2, AC3.3, AC3.6 (pagination nav visibility and behaviour)
 - AC6.2, AC6.3 (empty states, no errors)
+- AC7.3, AC7.10 (XSS escaping in params and table output)
 
 ### Tests to write (before implementation)
+
+#### Happy path
 1. **Date range form is present** — response contains date inputs with names `start_date` and `end_date`
 2. **Date inputs are pre-filled from query params** — `GET /?start_date=2025-01-01&end_date=2025-06-01` has those values in the inputs
 3. **Filter and Clear buttons exist** — response contains a submit button and a clear/reset link
-4. **Avg approval time displays human-readable format** — seed approved projects with known timestamps, assert output like "X days" or "X hours"
+4. **Avg approval time displays human-readable format** — seed an approved project with `submitted_at` 3 days 6 hours before `approved_at`, assert response contains "3 days" and "6 hours" (the backend returns seconds, the view formats them)
 5. **Avg approval time shows N/A when null** — seed only draft projects (no approvals), assert "N/A" displayed
 6. **Pagination links are rendered** — create 25 projects, assert pagination nav is present on page
 7. **Project table displays correct columns** — assert table headers and row data are present
 8. **Empty state is handled** — no projects seeded, page still loads without errors
+
+#### Negative / edge case tests (REQUIRED)
+9. **XSS in date params is escaped** — `GET /?start_date=<script>alert(1)</script>` returns 200 and response does NOT contain `<script>alert(1)</script>` (must be escaped in the input value attribute)
+10. **Null submitted_at does not crash the table** — seed a draft project with `submitted_at => null`, page loads without 500 error. Use null-safe operator (`?->`) or conditional in the Blade template.
+11. **Avg approval time with hours only (no days)** — seed approved project with 2 hours 15 min approval time, assert "2 hours, 15 minutes" (not "0 days, 2 hours")
+12. **Avg approval time with minutes only** — seed approved project with 45 min approval time, assert "45 minutes" (not "0 hours, 45 minutes")
+13. **Avg approval time with very large value** — seed approved project with 30 days approval time, assert "30 days" is displayed without overflow or layout breakage
+14. **Avg approval time near zero** — seed approved project where `submitted_at == approved_at` (0 seconds), assert something reasonable like "Less than 1 minute" (not empty string or "0")
+15. **Pagination not shown with exactly 20 projects** — create exactly 20 projects, pagination nav should NOT appear (no "Next" link)
+16. **Clear link resets to clean URL** — clear link href is exactly `/` with no query params
+17. **Table renders with special characters in title** — seed project with title `<b>O'Malley & Sons "Solar"</b>`, assert it appears escaped in the HTML (no raw HTML injection)
+18. **Date form uses GET method** — verify the form method is GET (not POST) so the URL is bookmarkable
 
 ### Running tests
 ```bash

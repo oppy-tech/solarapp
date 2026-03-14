@@ -123,16 +123,39 @@ Your tests should map to the acceptance criteria in `agents/product-owner-agent.
 - AC4.8 (recommendations included)
 
 ### Tests to write (before implementation)
+
+#### Status/timestamp consistency
 1. **Detects approved project missing approved_at** — seed project with status=approved, approved_at=null, assert it's flagged
-2. **Detects approved_at before submitted_at** — seed project with impossible timestamps, assert it's flagged
-3. **Detects draft project with submitted_at set** — seed draft project with submitted_at, assert it's flagged
-4. **Detects submitted project with approved_at set** — seed submitted project with approved_at, assert it's flagged
-5. **Detects project with unknown status** — seed project with status='invalid_status', assert it's flagged
-6. **Detects project with missing title** — seed project with empty title, assert it's flagged
-7. **Detects orphaned ahj_id** — seed project referencing non-existent AHJ, assert it's flagged
-8. **Clean data produces no issues** — seed valid projects only, assert zero issues found
-9. **Reports per-AHJ breakdown** — seed issues across 2 AHJs, assert both are reported separately
-10. **Command generates report file** — run command, assert `DATA_INTEGRITY_REPORT.md` exists and has expected sections
+2. **Detects approved project missing submitted_at** — seed project with status=approved, submitted_at=null, assert it's flagged
+3. **Detects approved_at before submitted_at** — seed project with impossible timestamps, assert it's flagged
+4. **Detects draft project with submitted_at set** — seed draft project with submitted_at, assert it's flagged
+5. **Detects draft project with approved_at set** — seed draft project with approved_at, assert it's flagged
+6. **Detects submitted project with approved_at set** — seed submitted project with approved_at, assert it's flagged
+7. **Detects revision_required project with approved_at set** — seed revision_required project with approved_at, assert it's flagged
+
+#### Impossible timestamps
+8. **Detects submitted_at before created_at** — seed project where submitted_at is earlier than created_at
+9. **Detects future submitted_at** — seed project with submitted_at in the future (beyond current date)
+10. **Detects future approved_at** — seed project with approved_at in the future
+11. **Detects unreasonably fast approval** — seed project approved within 1 second of submission, flag as suspicious
+
+#### Missing/invalid fields
+12. **Detects project with unknown status** — seed project with status='invalid_status', assert it's flagged
+13. **Detects project with missing title** — seed project with empty string title, assert it's flagged
+14. **Detects project with null title** — seed project with null title, assert it's flagged
+15. **Detects project with empty status** — seed project with status='', assert it's flagged
+16. **Detects project with null status** — seed project with null status, assert it's flagged
+17. **Detects project with unrecognised project_type_id** — seed project with project_type_id='INVALID', assert it's flagged
+18. **Detects orphaned ahj_id** — seed project referencing non-existent AHJ (use raw DB insert to bypass FK constraint if needed), assert it's flagged
+
+#### Report structure and integrity
+19. **Clean data produces no issues** — seed only valid projects with correct status/timestamp combinations, assert zero issues found
+20. **Reports per-AHJ breakdown** — seed issues across 2 AHJs, assert both are reported separately with correct counts
+21. **Command generates report file** — run command, assert `DATA_INTEGRITY_REPORT.md` exists and contains expected sections (Summary, Findings, Recommendations)
+22. **Report includes specific project IDs** — seed a bad project, run command, assert the project's ID appears in the report output
+23. **Report separates findings by severity** — seed critical and warning-level issues, assert both severity levels appear in report
+24. **Command exits with non-zero code when issues found** — seed bad data, assert command exit code indicates issues were detected
+25. **Command exits with zero code when no issues** — seed clean data, assert command exit code is 0
 
 ### Running tests
 ```bash

@@ -83,9 +83,12 @@ Your tests should map to the acceptance criteria in `agents/product-owner-agent.
 - AC1.2, AC1.3, AC1.7, AC1.8 (date filtering logic)
 - AC2.2, AC2.3, AC2.4 (approval time calculation)
 - AC3.1, AC3.4 (pagination behaviour)
-- AC5.1, AC5.2 (multi-tenancy)
+- AC5.1, AC5.2, AC5.3 (multi-tenancy)
+- AC7.1, AC7.2, AC7.3, AC7.4, AC7.5, AC7.6, AC7.7, AC7.8, AC7.9 (input validation & security)
 
 ### Tests to write (before implementation)
+
+#### Happy path
 1. **Dashboard loads with seeded data** — `GET /` returns 200, sees AHJ name
 2. **Stats are correct without filters** — total, approved, pending counts match created data
 3. **Date range filters projects** — create projects across dates, filter with `?start_date=&end_date=`, verify only matching projects returned
@@ -94,8 +97,24 @@ Your tests should map to the acceptance criteria in `agents/product-owner-agent.
 6. **Average approval time is null when no approved projects** — filter to range with no approvals
 7. **Pagination returns 20 per page** — create 25 projects, assert first page has 20, second has 5
 8. **Pagination preserves date filters** — pagination links contain start_date/end_date params
-9. **Invalid dates are handled gracefully** — bad date formats don't crash the page
-10. **Multi-tenancy: only current AHJ's projects shown** — create projects for 2 AHJs, verify isolation
+9. **Multi-tenancy: only current AHJ's projects shown** — create projects for 2 AHJs, verify isolation
+
+#### Negative / edge case tests (REQUIRED)
+10. **Invalid date format does not crash** — `?start_date=not-a-date&end_date=2025-01-31` returns 200, filters are ignored (shows all data)
+11. **End date before start date is handled** — `?start_date=2025-06-01&end_date=2025-01-01` returns 200, invalid range is ignored
+12. **SQL injection in date params** — `?start_date=2025-01-01'; DROP TABLE projects;--&end_date=2025-01-31` returns 200, no error, no data loss
+13. **XSS in date params** — `?start_date=<script>alert(1)</script>&end_date=2025-01-31` returns 200, script tag is NOT present in response body (escaped or ignored)
+14. **Empty string dates** — `?start_date=&end_date=` returns 200, treated as no filter
+15. **Only start_date provided** — `?start_date=2025-01-01` (no end_date) returns 200, either filters from start_date onwards or ignores incomplete range
+16. **Only end_date provided** — `?end_date=2025-01-31` (no start_date) returns 200, either filters up to end_date or ignores incomplete range
+17. **Extreme date range** — `?start_date=1900-01-01&end_date=2099-12-31` returns 200, does not timeout or error
+18. **Negative page number** — `?page=-1` returns 200 (Laravel handles this gracefully) or redirects to page 1
+19. **Page number beyond last page** — create 5 projects, request `?page=999`, returns 200 with empty results (not a 500)
+20. **Non-numeric page** — `?page=abc` returns 200, does not crash
+21. **Extra unexpected query params** — `?start_date=2025-01-01&end_date=2025-01-31&foo=bar&admin=true` returns 200, extra params are ignored
+22. **Date at boundary** — project with `submitted_at` exactly at `start_date 00:00:00` and `end_date 23:59:59` are included
+23. **Approval time with zero duration** — approved project where `submitted_at == approved_at` (0 seconds), avg should be 0 not null
+24. **Multi-tenancy with date filters** — filter by date range, verify other AHJ's projects in that range are NOT included in stats or results
 
 ### Running tests
 ```bash
