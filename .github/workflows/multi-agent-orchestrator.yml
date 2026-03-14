@@ -238,20 +238,20 @@ jobs:
           direct_prompt: |
             Read the file agents/data-integrity-agent.md for your full instructions.
 
-            You are the Data Integrity Agent. Follow TDD strictly:
-            1. Read the agent prompt (including Known Issues section), the models, migration, seeder, and sample_data.json
-            2. Write ALL tests (including negative/edge cases) in solar-interview/tests/Feature/DataIntegrityCheckTest.php
-            3. Create the Artisan command in solar-interview/app/Console/Commands/DataIntegrityCheck.php
-            4. Run tests — they should fail (red)
-            5. Implement the command logic
-            6. Run tests again — fix your implementation until ALL tests pass (green)
-            7. If any test still fails, DO NOT STOP. Debug the failure, update the implementation, and re-run.
-            8. Repeat step 6-7 until you see 0 failures.
-            9. Run the command against the seeded database to generate DATA_INTEGRITY_REPORT.md
+            You are the Data Integrity Agent. Read agents/data-integrity-agent.md carefully, including Known Issues and the implementation-first approach.
 
-            CRITICAL: You must not finish until ALL tests pass. Run the test suite as your final step and confirm 0 failures in the output. If any test fails, fix the code and re-run.
+            IMPORTANT: For this agent, implement FIRST then write matching tests:
+            1. Read the agent prompt, models, migration, seeder, and sample_data.json
+            2. Create the Artisan command in solar-interview/app/Console/Commands/DataIntegrityCheck.php
+            3. Implement ALL detection checks (status/timestamp, impossible timestamps, missing fields)
+            4. Run the command manually: cd solar-interview && php artisan data:integrity-check
+            5. Note the EXACT output strings the command produces
+            6. Write tests in solar-interview/tests/Feature/DataIntegrityCheckTest.php that assert on those EXACT strings
+            7. Run tests: cd solar-interview && php artisan test --filter=DataIntegrityCheckTest
+            8. Fix any failures and re-run until 0 failures
+            9. Generate the report: cd solar-interview && php artisan data:integrity-check
 
-            Note on null fields: SQLite and MySQL handle NOT NULL constraints differently. If a test tries to insert a NULL into a NOT NULL column, it may fail at the DB level. In that case, either use DB::table()->insert() to bypass Eloquent, or adjust the test to use an empty string instead of null. The important thing is that the command DETECTS the issue.
+            CRITICAL: You must not finish until ALL tests pass. Your tests MUST match the exact output of your command. If a test fails because of a string mismatch, update the test assertion to match what the command actually outputs.
 
             Run tests with: cd solar-interview && php artisan test --filter=DataIntegrityCheckTest
             Run the command with: cd solar-interview && php artisan data:integrity-check

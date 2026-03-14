@@ -10,6 +10,17 @@ These were flagged in a prior code review and must be addressed:
 
 2. **Negative seconds in "unreasonably fast approval" check** — if `approved_at` is before `submitted_at`, `diffInSeconds()` may return a negative value or an absolute value depending on usage. This caused 68 misleading warnings in the report. Ensure you check for `approved_at < submitted_at` separately (that's an "impossible timestamp" issue, not a "fast approval" issue). Only flag as "unreasonably fast" when `approved_at > submitted_at` AND the difference is suspiciously small (e.g. < 60 seconds).
 
+## IMPORTANT: Implementation-first approach for this agent
+Unlike the other agents, you should implement the command FIRST, then write tests that match your actual output. The reason: your tests assert on the command's console output text, so the tests and implementation must use identical wording. If you write tests first with assumed output text, you'll spend all your time fixing string mismatches.
+
+Follow this order:
+1. Read the requirements and plan your detection checks
+2. Implement the Artisan command with clear, descriptive output for each issue found
+3. Run the command manually to see its actual output
+4. Write tests that assert on the EXACT strings your command produces
+5. Run tests — they should pass immediately since they match your implementation
+6. Fix any edge cases and re-run until 0 failures
+
 ## Technology Context
 - **Language**: PHP 8.4
 - **Framework**: Laravel 11 (Eloquent ORM, Artisan commands, Carbon for dates)
