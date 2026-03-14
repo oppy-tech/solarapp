@@ -41,14 +41,21 @@ jobs:
           tools: composer:v2
 
       - name: Setup Laravel environment
-        run: |
-          chmod +x setup.sh
-          ./setup.sh
-        continue-on-error: false
-
-      - name: Install Sanctum (known fix)
         working-directory: solar-interview
-        run: composer require laravel/sanctum --quiet
+        run: |
+          cp .env.example .env
+          composer install --quiet
+          composer require laravel/sanctum --quiet
+          php artisan key:generate
+          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=sqlite/' .env
+          sed -i 's/^DB_HOST/#DB_HOST/' .env
+          sed -i 's/^DB_PORT/#DB_PORT/' .env
+          sed -i 's/^DB_DATABASE/#DB_DATABASE/' .env
+          sed -i 's/^DB_USERNAME/#DB_USERNAME/' .env
+          sed -i 's/^DB_PASSWORD/#DB_PASSWORD/' .env
+          touch database/database.sqlite
+          php artisan migrate:fresh --quiet
+          php artisan db:seed --class=InterviewSeeder --quiet
 
       - name: Create agent branch
         run: |
@@ -275,14 +282,12 @@ jobs:
           coverage: none
 
       - name: Setup Laravel environment
-        run: |
-          chmod +x setup.sh
-          ./setup.sh
-        continue-on-error: true
-
-      - name: Install Sanctum
         working-directory: solar-interview
-        run: composer require laravel/sanctum --quiet
+        run: |
+          cp .env.example .env
+          composer install --quiet
+          composer require laravel/sanctum --quiet
+          php artisan key:generate
 
       - name: Configure test environment
         working-directory: solar-interview
