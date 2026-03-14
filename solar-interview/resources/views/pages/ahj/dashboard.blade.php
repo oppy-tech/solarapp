@@ -58,10 +58,10 @@
                         echo 'N/A';
                     } else {
                         $totalSeconds = (int) $avgTime;
-                        $days = floor($totalSeconds / 86400);
-                        $hours = floor(($totalSeconds % 86400) / 3600);
-                        $minutes = floor(($totalSeconds % 3600) / 60);
-                        
+                        $days = (int) floor($totalSeconds / 86400);
+                        $hours = (int) floor(($totalSeconds % 86400) / 3600);
+                        $minutes = (int) floor(($totalSeconds % 3600) / 60);
+
                         $parts = [];
                         if ($days > 0) $parts[] = $days . ' day' . ($days !== 1 ? 's' : '');
                         if ($hours > 0) $parts[] = $hours . ' hour' . ($hours !== 1 ? 's' : '');
@@ -89,7 +89,7 @@
                 <tr>
                     <td class="px-6 py-4">{{ $project->title }}</td>
                     <td class="px-6 py-4">{{ $project->status }}</td>
-                    <td class="px-6 py-4">{{ $project->submitted_at->format('M d, Y') }}</td>
+                    <td class="px-6 py-4">{{ $project->submitted_at?->format('M d, Y') ?? '—' }}</td>
                 </tr>
                 @endforeach
             </tbody>
