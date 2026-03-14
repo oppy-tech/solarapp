@@ -316,17 +316,16 @@ jobs:
       - name: Configure test environment
         working-directory: solar-interview
         run: |
-          cp .env .env.testing
-          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env.testing
-          sed -i 's/DB_HOST=.*/DB_HOST=127.0.0.1/' .env.testing
-          sed -i 's/DB_PORT=.*/DB_PORT=3306/' .env.testing
-          sed -i 's/DB_DATABASE=.*/DB_DATABASE=testing/' .env.testing
-          sed -i 's/DB_USERNAME=.*/DB_USERNAME=root/' .env.testing
-          sed -i 's/DB_PASSWORD=.*/DB_PASSWORD=password/' .env.testing
+          sed -i 's/DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
+          sed -i 's/^.*DB_HOST=.*/DB_HOST=127.0.0.1/' .env
+          sed -i 's/^.*DB_PORT=.*/DB_PORT=3306/' .env
+          sed -i 's/^.*DB_DATABASE=.*/DB_DATABASE=testing/' .env
+          sed -i 's/^.*DB_USERNAME=.*/DB_USERNAME=root/' .env
+          sed -i 's/^.*DB_PASSWORD=.*/DB_PASSWORD=password/' .env
 
       - name: Run full test suite
         working-directory: solar-interview
-        run: php artisan test --env=testing
+        run: php artisan test
 
   # ============================================================
   # Phase 4: Create Pull Request
