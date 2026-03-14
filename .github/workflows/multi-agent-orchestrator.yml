@@ -92,6 +92,8 @@ jobs:
             IMPORTANT: Only edit DashboardController.php and your test file. Do not touch views, models, or routes.
           allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
           model: ${{ env.ANTHROPIC_MODEL }}
+          timeout_minutes: 45
+          max_turns: 50
 
       - name: Verify all tests pass
         working-directory: solar-interview
@@ -172,6 +174,8 @@ jobs:
             IMPORTANT: Only edit dashboard.blade.php and your test file. Do not touch controllers, models, or routes.
           allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
           model: ${{ env.ANTHROPIC_MODEL }}
+          timeout_minutes: 45
+          max_turns: 50
 
       - name: Verify all tests pass
         working-directory: solar-interview
@@ -255,6 +259,8 @@ jobs:
             IMPORTANT: Do not modify existing models, controllers, views, or migrations. You may only create your command file, test file, and the report.
           allowed_tools: "Bash,Read,Write,Edit,Glob,Grep"
           model: ${{ env.ANTHROPIC_MODEL }}
+          timeout_minutes: 45
+          max_turns: 50
 
       - name: Verify all tests pass
         working-directory: solar-interview

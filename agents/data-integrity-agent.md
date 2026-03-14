@@ -179,7 +179,32 @@ Do NOT consider your work complete until every test passes. The TDD cycle is:
 
 If a test is genuinely wrong (testing the wrong thing), you may fix the test — but document why in a code comment. Never delete a test to make the suite pass.
 
-Note on null fields: SQLite and MySQL may reject NULL inserts on NOT NULL columns. If a test needs to insert NULL to test detection, use `DB::table('projects')->insert([...])` to bypass Eloquent's model protections, or use empty string instead of null. The goal is that the command DETECTS the issue.
+### Handling NULL and invalid data in tests
+SQLite and MySQL may reject NULL inserts on NOT NULL columns. You MUST handle this in your tests:
+
+- **For null title/status**: Use `DB::table('projects')->insert([...])` with all required columns to bypass Eloquent and model-level validation. Include `created_at` and `updated_at` timestamps. Example:
+  ```php
+  DB::table('projects')->insert([
+      'ahj_id' => $ahj->id,
+      'title' => '', // or test with empty string if null fails
+      'status' => 'approved',
+      'project_type_id' => 'PV',
+      'submitted_at' => now(),
+      'approved_at' => now(),
+      'created_at' => now(),
+      'updated_at' => now(),
+  ]);
+  ```
+- **For orphaned ahj_id**: Disable foreign key checks temporarily:
+  ```php
+  DB::statement('SET FOREIGN_KEY_CHECKS=0;'); // MySQL
+  DB::table('projects')->insert(['ahj_id' => 9999, ...]);
+  DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+  ```
+  Or for SQLite: `DB::statement('PRAGMA foreign_keys = OFF;');` then re-enable after.
+- **For unknown status/project_type**: These are string columns with no DB-level constraint, so `Project::create(['status' => 'invalid_status', ...])` should work fine.
+- **For "clean data produces no issues"**: Seed ONLY valid projects with correct status/timestamp combinations. Make sure the command checks pass for well-formed data.
+- **If a NULL insert truly cannot work**, use empty string `''` instead and have the command detect empty strings as a "missing field" issue. Document this in a test comment.
 
 ## Infrastructure Context & Security Guardrails
 
