@@ -58,6 +58,11 @@ jobs:
           php artisan migrate:fresh --quiet
           php artisan db:seed --class=InterviewSeeder --quiet
 
+      - name: Configure git identity
+        run: |
+          git config user.name "Agent Bot"
+          git config user.email "agent@solarapp.dev"
+
       - name: Create agent branch
         run: |
           git checkout -b agent/backend
@@ -130,6 +135,11 @@ jobs:
           touch database/database.sqlite
           php artisan migrate:fresh --quiet
           php artisan db:seed --class=InterviewSeeder --quiet
+
+      - name: Configure git identity
+        run: |
+          git config user.name "Agent Bot"
+          git config user.email "agent@solarapp.dev"
 
       - name: Create agent branch
         run: |
@@ -205,6 +215,11 @@ jobs:
           touch database/database.sqlite
           php artisan migrate:fresh --quiet
           php artisan db:seed --class=InterviewSeeder --quiet
+
+      - name: Configure git identity
+        run: |
+          git config user.name "Agent Bot"
+          git config user.email "agent@solarapp.dev"
 
       - name: Create agent branch
         run: |
