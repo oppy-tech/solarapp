@@ -338,7 +338,9 @@ jobs:
 
       - name: Run full test suite
         working-directory: solar-interview
-        run: php artisan test
+        run: |
+          mkdir -p tests/Unit
+          php artisan test
 
   # ============================================================
   # Phase 4: Create Pull Request
