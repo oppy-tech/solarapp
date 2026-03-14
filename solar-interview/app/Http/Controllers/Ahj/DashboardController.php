@@ -34,26 +34,97 @@ class DashboardController extends Controller
         // YOUR LOGIC STARTS HERE
         // ----------------------------------------------------------------
 
-        // TODO: Apply Date Range Filters to this query
-        $projectsQuery = $ahj->projects();
+        // Validate and extract date filter parameters
+        $startDate = null;
+        $endDate = null;
+        
+        if ($request->has('start_date') && $request->filled('start_date')) {
+            try {
+                $startDate = Carbon::createFromFormat('Y-m-d', $request->start_date)->startOfDay();
+            } catch (\Exception $e) {
+                // Invalid date format - ignore the filter
+            }
+        }
+        
+        if ($request->has('end_date') && $request->filled('end_date')) {
+            try {
+                $endDate = Carbon::createFromFormat('Y-m-d', $request->end_date)->endOfDay();
+            } catch (\Exception $e) {
+                // Invalid date format - ignore the filter
+            }
+        }
+        
+        // Ensure start_date <= end_date
+        if ($startDate && $endDate && $startDate->gt($endDate)) {
+            // Invalid range - ignore both filters
+            $startDate = null;
+            $endDate = null;
+        }
 
-        // Get all projects to calculate stats
-        $allProjects = $projectsQuery->get();
+        // Apply date range filters to the base query
+        $projectsQuery = $ahj->projects();
+        
+        if ($startDate) {
+            $projectsQuery->where('submitted_at', '>=', $startDate);
+        }
+        
+        if ($endDate) {
+            $projectsQuery->where('submitted_at', '<=', $endDate);
+        }
+
+        // Calculate stats using efficient database queries
+        $totalProjects = $projectsQuery->count();
+        $approvedProjectsCount = (clone $projectsQuery)->where('status', 'approved')->count();
+        $pendingProjects = (clone $projectsQuery)->whereIn('status', ['submitted', 'revision_required'])->count();
+        
+        // Calculate average approval time for approved projects only
+        $avgApprovalTimeQuery = (clone $projectsQuery)
+            ->where('status', 'approved')
+            ->whereNotNull('submitted_at')
+            ->whereNotNull('approved_at');
+            
+        $avgApprovalTime = null;
+        
+        if ($avgApprovalTimeQuery->count() > 0) {
+            // Get approved projects and calculate in PHP for cross-database compatibility
+            $approvedProjectsForTime = $avgApprovalTimeQuery
+                ->select(['submitted_at', 'approved_at'])
+                ->get();
+            
+            $totalSeconds = 0;
+            foreach ($approvedProjectsForTime as $project) {
+                $totalSeconds += $project->submitted_at->diffInSeconds($project->approved_at);
+            }
+            
+            if ($approvedProjectsForTime->count() > 0) {
+                $avgApprovalTime = (int) round($totalSeconds / $approvedProjectsForTime->count());
+            }
+        }
 
         $stats = [
-            'total_projects' => $allProjects->count(),
-            'approved_projects' => $allProjects->where('status', 'approved')->count(),
-            'pending_projects' => $allProjects->whereIn('status', ['submitted', 'revision_required'])->count(),
-            'avg_approval_time' => 'N/A', // TODO: Calculate this efficiently
+            'total_projects' => $totalProjects,
+            'approved_projects' => $approvedProjectsCount,
+            'pending_projects' => $pendingProjects,
+            'avg_approval_time' => $avgApprovalTime,
         ];
 
-        // TODO: Replace limit(10) with ->paginate()
-        $projects = $ahj->projects()->latest('submitted_at')->limit(10)->get();
+        // Paginated projects with date filters preserved
+        $projects = (clone $projectsQuery)
+            ->latest('submitted_at')
+            ->paginate(20)
+            ->appends($request->query());
+
+        // Prepare filters for view
+        $filters = [
+            'start_date' => $startDate ? $startDate->format('Y-m-d') : null,
+            'end_date' => $endDate ? $endDate->format('Y-m-d') : null,
+        ];
 
         return view('pages.ahj.dashboard', [
             'ahj' => $ahj,
             'stats' => $stats,
-            'projects' => $projects
+            'projects' => $projects,
+            'filters' => $filters,
         ]);
     }
 }
