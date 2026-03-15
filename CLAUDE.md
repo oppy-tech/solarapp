@@ -114,14 +114,14 @@ Agent prompts include a "Known Issues from Code Review" section listing specific
 GitHub Actions workflow (`.github/workflows/multi-agent-orchestrator.yml`):
 
 ```
-Phase 1: Parallel Agent Execution
-├── agent/backend    → DashboardController + tests
-├── agent/frontend   → dashboard.blade.php + tests
-└── agent/data-integrity → DataIntegrityCheck + tests + report
+Phase 1: Agent Execution (backend first, then frontend; data-integrity parallel)
+├── agent/backend    → DashboardController + tests (runs first)
+│   └── agent/frontend   → dashboard.blade.php + tests (runs on backend's branch)
+└── agent/data-integrity → DataIntegrityCheck + tests + report (parallel with above)
          │ (each agent has a "Verify all tests pass" gate)
          ▼
 Phase 2: Merge Agent Branches
-         → feature/multi-agent-delivery (handles output.txt conflicts)
+         → feature/multi-agent-delivery (frontend includes backend)
          ▼
 Phase 3: Test Suite
          → Full test suite on merged branch (MySQL service container)

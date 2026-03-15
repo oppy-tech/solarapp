@@ -108,11 +108,13 @@ jobs:
   agent-frontend:
     name: "Agent: Frontend (Task B)"
     runs-on: ubuntu-latest
+    needs: agent-backend
     if: ${{ !inputs.skip_agents }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: master
+          ref: agent/backend
+          fetch-depth: 0
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -167,7 +169,7 @@ jobs:
 
             CRITICAL: You must not finish until ALL tests pass. Run the test suite as your final step and confirm 0 failures in the output. If any test fails, fix the code and re-run.
 
-            NOTE: The backend agent runs in parallel and implements the controller. Your tests will hit the CURRENT controller (pre-implementation). For tests that depend on backend behaviour (e.g. avg approval time format), test what YOUR view does with the data contract. If the controller currently returns 'N/A' as a string for avg_approval_time, but the contract says it returns int|null, write your test against the contract (int|null), not the current implementation. Seed data and check what the controller actually returns.
+            NOTE: You are running on top of the backend agent's branch. The controller has ALREADY been updated with date filtering, approval time calculation, pagination, and the $filters variable. Your tests should test against the REAL controller behaviour, not the pre-implementation state. Seed data and verify what the controller actually returns.
 
             Run tests with: cd solar-interview && php artisan test --filter=DashboardViewTest
 
@@ -300,19 +302,13 @@ jobs:
         run: |
           git checkout -b ${{ env.DELIVERY_BRANCH }}
 
-          echo "Merging backend agent..."
-          git merge origin/agent/backend --no-edit -m "merge: backend agent (Task A)"
-
-          echo "Merging frontend agent..."
-          git merge origin/agent/frontend --no-edit -m "merge: frontend agent (Task B)" || {
-            # Resolve output.txt conflicts (claude-code-action log file) by keeping both
-            git checkout --theirs output.txt 2>/dev/null || true
-            git add output.txt 2>/dev/null || true
-            git -c core.editor=true merge --continue
-          }
+          # Frontend branch already includes backend changes (sequential dependency)
+          echo "Merging frontend agent (includes backend)..."
+          git merge origin/agent/frontend --no-edit -m "merge: frontend agent (includes backend, Tasks A+B)"
 
           echo "Merging data-integrity agent..."
           git merge origin/agent/data-integrity --no-edit -m "merge: data-integrity agent (Task C)" || {
+            # Resolve output.txt conflicts (claude-code-action log file)
             git checkout --theirs output.txt 2>/dev/null || true
             git add output.txt 2>/dev/null || true
             git -c core.editor=true merge --continue

@@ -14,6 +14,15 @@ These were flagged in a prior code review and must be addressed:
 
 4. **Avg approval time test asserted wrong value** — if you have a test that asserts `N/A` when an approved project with valid timestamps exists, fix it to assert the actual human-readable format (e.g. "3 days, 6 hours"). The backend returns seconds, not `N/A`, when there are approved projects.
 
+## IMPORTANT: You run AFTER the backend agent
+Your branch starts from the backend agent's completed work. The controller has already been updated with:
+- Date filtering via `start_date`/`end_date` query params
+- Average approval time calculation (returns int seconds or null)
+- Server-side pagination (20 per page)
+- `$filters` array echoed back to the view
+
+This means you can (and should) test against the REAL controller behaviour. Seed data, hit the endpoint, and assert on what it actually returns. Do NOT write tests assuming the pre-implementation controller.
+
 ## Technology Context
 - **Templating**: Laravel Blade (`@extends`, `@section`, `@foreach`, `{{ }}` for output, `{!! !!}` for unescaped HTML)
 - **CSS**: Tailwind CSS (loaded via CDN `<script src="https://cdn.tailwindcss.com"></script>`)
