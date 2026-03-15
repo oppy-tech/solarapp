@@ -34,6 +34,9 @@ class DataIntegrityCheck extends Command
             $this->scanAhjProjects($ahj);
         }
 
+        // Check for orphaned projects (ahj_id references non-existent AHJ)
+        $this->checkOrphanedProjects();
+
         // Generate report
         $this->generateReport();
 
@@ -190,6 +193,18 @@ class DataIntegrityCheck extends Command
         if (!empty($project->ahj_id) && is_null($project->ahj)) {
             $this->addIssue('critical', "Project {$project->id}: references non-existent AHJ ID {$project->ahj_id}");
             $ahjIssues['critical']++;
+        }
+    }
+
+    private function checkOrphanedProjects(): void
+    {
+        $orphans = Project::whereNotIn('ahj_id', Ahj::pluck('id'))->get();
+        foreach ($orphans as $project) {
+            $this->totalProjects++;
+            $this->addIssue('critical', "Project {$project->id}: references non-existent AHJ ID {$project->ahj_id}");
+        }
+        if ($orphans->count() > 0) {
+            $this->info("Found {$orphans->count()} orphaned project(s) referencing non-existent AHJs");
         }
     }
 
