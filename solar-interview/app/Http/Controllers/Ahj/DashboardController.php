@@ -12,16 +12,6 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        // ----------------------------------------------------------------
-        // INSTRUCTIONS:
-        // ----------------------------------------------------------------
-        // This controller is already connected to a SQLite database seeded
-        // with ~160 projects. You can use standard Eloquent relationships.
-        //
-        // NOTE: This code was written by a previous contractor and shipped
-        // quickly. Feel free to improve anything you see fit.
-        // ----------------------------------------------------------------
-
         // MOCK AUTH: If not logged in, use the first AHJ found in the DB.
         // In a real app, this would be `auth()->user()->ahj`.
         $ahj = auth()->user()?->ahj ?? Ahj::first();
@@ -30,30 +20,93 @@ class DashboardController extends Controller
             abort(500, 'Database is empty. Did you run the migration/seeder?');
         }
 
-        // ----------------------------------------------------------------
-        // YOUR LOGIC STARTS HERE
-        // ----------------------------------------------------------------
+        // Get and validate date filters
+        $startDate = $this->validateDate($request->query('start_date'));
+        $endDate = $this->validateDate($request->query('end_date'));
 
-        // TODO: Apply Date Range Filters to this query
-        $projectsQuery = $ahj->projects();
+        // Ensure valid date range
+        if ($startDate && $endDate && $startDate > $endDate) {
+            $startDate = null;
+            $endDate = null;
+        }
 
-        // Get all projects to calculate stats
-        $allProjects = $projectsQuery->get();
+        // Build base query with date filters
+        $baseQueryBuilder = $ahj->projects();
+        
+        if ($startDate && $endDate) {
+            $baseQueryBuilder->whereBetween('submitted_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+        } elseif ($startDate) {
+            $baseQueryBuilder->where('submitted_at', '>=', $startDate . ' 00:00:00');
+        } elseif ($endDate) {
+            $baseQueryBuilder->where('submitted_at', '<=', $endDate . ' 23:59:59');
+        }
 
+        // Calculate stats using cloned queries to avoid interference
         $stats = [
-            'total_projects' => $allProjects->count(),
-            'approved_projects' => $allProjects->where('status', 'approved')->count(),
-            'pending_projects' => $allProjects->whereIn('status', ['submitted', 'revision_required'])->count(),
-            'avg_approval_time' => 'N/A', // TODO: Calculate this efficiently
+            'total_projects' => (clone $baseQueryBuilder)->count(),
+            'approved_projects' => (clone $baseQueryBuilder)->where('status', 'approved')->count(),
+            'pending_projects' => (clone $baseQueryBuilder)->whereIn('status', ['submitted', 'revision_required'])->count(),
+            'avg_approval_time' => $this->calculateAverageApprovalTime($baseQueryBuilder),
         ];
 
-        // TODO: Replace limit(10) with ->paginate()
-        $projects = $ahj->projects()->latest('submitted_at')->limit(10)->get();
+        // Get paginated projects with filter preservation
+        $projects = (clone $baseQueryBuilder)->whereNotNull('submitted_at')
+            ->latest('submitted_at')
+            ->paginate(20)
+            ->appends($request->query());
 
         return view('pages.ahj.dashboard', [
             'ahj' => $ahj,
             'stats' => $stats,
-            'projects' => $projects
+            'projects' => $projects,
+            'filters' => [
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+            ],
         ]);
+    }
+
+    private function validateDate($date)
+    {
+        if (empty($date) || !is_string($date)) {
+            return null;
+        }
+
+        try {
+            $parsedDate = Carbon::createFromFormat('Y-m-d', $date);
+            return $parsedDate->format('Y-m-d');
+        } catch (\Exception $e) {
+            return null;
+        }
+    }
+
+    private function calculateAverageApprovalTime($query)
+    {
+        // Clone the query to avoid modifying the original
+        $approvalQuery = clone $query;
+        
+        // Use different SQL for different database drivers
+        $driver = config('database.default');
+        $connection = config("database.connections.{$driver}.driver");
+        
+        if ($connection === 'sqlite') {
+            // SQLite: Calculate seconds using julianday
+            $avgSeconds = $approvalQuery
+                ->where('status', 'approved')
+                ->whereNotNull('submitted_at')
+                ->whereNotNull('approved_at')
+                ->selectRaw('AVG((julianday(approved_at) - julianday(submitted_at)) * 86400) as avg_seconds')
+                ->value('avg_seconds');
+        } else {
+            // MySQL: Use TIMESTAMPDIFF
+            $avgSeconds = $approvalQuery
+                ->where('status', 'approved')
+                ->whereNotNull('submitted_at')
+                ->whereNotNull('approved_at')
+                ->selectRaw('AVG(TIMESTAMPDIFF(SECOND, submitted_at, approved_at)) as avg_seconds')
+                ->value('avg_seconds');
+        }
+
+        return $avgSeconds !== null ? (int) round($avgSeconds) : null;
     }
 }
